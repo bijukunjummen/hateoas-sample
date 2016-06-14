@@ -28,4 +28,4 @@ A HATEOAS project that shows how to post and consume HAL with a RestTemplate
 ```
 
 ## Develop / Learn
-View the test to see how to post and consume using RestTemplate
+View the <a href="https://github.com/chadunplugged/hateoas-sample/blob/master/src/test/java/univ/HALRestTemplateIntegrationTests.java">test</a>to see how to post and consume using RestTemplate
