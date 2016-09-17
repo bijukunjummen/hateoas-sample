@@ -1,5 +1,7 @@
 package univ.domain;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import javax.persistence.*;
 import javax.validation.constraints.Size;
 
@@ -8,8 +10,9 @@ import javax.validation.constraints.Size;
 public class Teacher {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Column(name = "id")
-	private Long id;
+	@Column(name = "teacherId")
+	@JsonProperty("teacher_id")
+	private Long teacherId;
 
 	@Size(min = 2, max = 50)
 	@Column(name = "name")
@@ -23,12 +26,12 @@ public class Teacher {
 	@Column(name = "version")
 	private Integer version;
 
-	public Long getId() {
-		return this.id;
+	public Long getTeacherId() {
+		return this.teacherId;
 	}
 
-	public void setId(Long id) {
-		this.id = id;
+	public void setTeacherId(Long teacherId) {
+		this.teacherId = teacherId;
 	}
 
 	public String getName() {
@@ -58,7 +61,7 @@ public class Teacher {
 	@Override
 	public String toString() {
 		return "Teacher{" +
-				"id=" + id +
+				"teacherId=" + teacherId +
 				", name='" + name + '\'' +
 				", department='" + department + '\'' +
 				", version=" + version +

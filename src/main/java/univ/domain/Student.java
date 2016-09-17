@@ -1,5 +1,6 @@
 package univ.domain;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.format.annotation.DateTimeFormat.ISO;
 
@@ -15,8 +16,9 @@ import java.util.List;
 public class Student {
 	@Id
 	@GeneratedValue(strategy = GenerationType.AUTO)
-	@Column(name = "id")
-	private Long id;
+	@Column(name = "studentId")
+	@JsonProperty("student_id")
+	private Long studentId;
 
 	@Size(min = 2, max = 50)
 	@Column(name = "name")
@@ -25,9 +27,10 @@ public class Student {
 	@NotNull
 	@Column(name = "birthdate")
 	@DateTimeFormat(iso = ISO.DATE)
+	@JsonProperty("birth_date")
 	private Date birthDate;
 
-	@ManyToMany(fetch = FetchType.EAGER)
+	@ManyToMany(fetch = FetchType.LAZY)
 	@JoinTable(name = "studentcourse", joinColumns = @JoinColumn(name = "Student_id"), inverseJoinColumns = @JoinColumn(name = "Course_id"))
 	private List<Course> courses = new ArrayList<Course>();
 
@@ -35,12 +38,12 @@ public class Student {
 	@Column(name = "version")
 	private Integer version;
 
-	public Long getId() {
-		return this.id;
+	public Long getStudentId() {
+		return this.studentId;
 	}
 
-	public void setId(Long id) {
-		this.id = id;
+	public void setStudentId(Long studentId) {
+		this.studentId = studentId;
 	}
 
 	public String getName() {

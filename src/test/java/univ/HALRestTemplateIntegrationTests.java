@@ -4,41 +4,41 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.IntegrationTest;
-import org.springframework.boot.test.SpringApplicationConfiguration;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.hateoas.Link;
 import org.springframework.hateoas.Resource;
-import org.springframework.hateoas.ResourceSupport;
-import org.springframework.hateoas.hal.Jackson2HalModule;
 import org.springframework.hateoas.mvc.TypeConstrainedMappingJackson2HttpMessageConverter;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageConverter;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
-import org.springframework.test.context.web.WebAppConfiguration;
+import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestTemplate;
 import univ.domain.Course;
 import univ.domain.Teacher;
 
-import java.io.StringWriter;
 import java.net.URI;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
-import static org.springframework.hateoas.MediaTypes.HAL_JSON;
+import static org.assertj.core.api.Assertions.assertThat;
 
-@RunWith(SpringJUnit4ClassRunner.class)
-@SpringApplicationConfiguration(classes = Application.class)
-@WebAppConfiguration
-@IntegrationTest("server.port:0")
+@RunWith(SpringRunner.class)
+@SpringBootTest(webEnvironment= SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class HALRestTemplateIntegrationTests {
 
-	@Value("8080")
+	@Value("${local.server.port}")
 	private int port;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    @Qualifier("halJacksonHttpMessageConverter")
+    private TypeConstrainedMappingJackson2HttpMessageConverter halJacksonHttpMessageConverter;
 
 	@Test
 	public void testCreatingTeachersAndCourses() throws Exception{
@@ -58,12 +58,15 @@ public class HALRestTemplateIntegrationTests {
 				= testRestTemplate.exchange(teacher1Uri, HttpMethod.GET, null, new ParameterizedTypeReference<Resource<Teacher>>() {
 		});
 
+		//Retrieve the teacher.
 		Resource<Teacher> teacherResource = teacherResponseEntity.getBody();
 
 		Link teacherLink = teacherResource.getLink("self");
 		String teacherUri = teacherLink.getHref();
 
 		Teacher teacher = teacherResource.getContent();
+
+		assertThat(teacher.getName()).isEqualTo("Teacher 1");
 
 		/*
 			Create a Course with the teacher assigned to this course
@@ -72,43 +75,29 @@ public class HALRestTemplateIntegrationTests {
 		course1.setCourseCode("Course1");
 		course1.setCourseName("Course Name 1");
 
-		ObjectMapper objectMapper = getObjectMapperWithHalModule();
-		ObjectNode jsonNodeCourse1 = (ObjectNode) objectMapper.valueToTree(course1);
-		jsonNodeCourse1.put("teacher", teacher1Uri.getPath());
+		ObjectNode jsonNodeCourse1 = objectMapper.valueToTree(course1);
+		jsonNodeCourse1.put("teacher", teacherUri);
 		URI course1Uri = testRestTemplate.postForLocation(coursesUri, jsonNodeCourse1);
 
 		ResponseEntity<Resource<Course>> courseResponseEntity
-				= testRestTemplate.exchange(course1Uri, HttpMethod.GET, null, new ParameterizedTypeReference<Resource<Course>>() {
-		});
+				= testRestTemplate.exchange(course1Uri, HttpMethod.GET, null, new ParameterizedTypeReference<Resource<Course>>() {});
 
 		Resource<Course> courseResource = courseResponseEntity.getBody();
 		Link teacherLinkThroughCourse = courseResource.getLink("teacher");
-		System.out.println("Teacher Link through Course = " + teacherLinkThroughCourse);
+
+		String expectedTeacherLinkThroughCourse = String.format("http://localhost:%s/api/courses/%d/teacher", port, courseResource.getContent().getCourseId());
+		assertThat(teacherLinkThroughCourse.getHref()).isEqualTo(expectedTeacherLinkThroughCourse);
+
 	}
 
 	public RestTemplate getRestTemplateWithHalMessageConverter() {
 		RestTemplate restTemplate = new RestTemplate();
 		List<HttpMessageConverter<?>> existingConverters = restTemplate.getMessageConverters();
 		List<HttpMessageConverter<?>> newConverters = new ArrayList<>();
-		newConverters.add(getHalMessageConverter());
+		newConverters.add(halJacksonHttpMessageConverter);
 		newConverters.addAll(existingConverters);
 		restTemplate.setMessageConverters(newConverters);
 		return restTemplate;
 	}
-
-	private HttpMessageConverter getHalMessageConverter() {
-		ObjectMapper objectMapper = getObjectMapperWithHalModule();
-		MappingJackson2HttpMessageConverter halConverter = new TypeConstrainedMappingJackson2HttpMessageConverter(ResourceSupport.class);
-		halConverter.setSupportedMediaTypes(Arrays.asList(HAL_JSON));
-		halConverter.setObjectMapper(objectMapper);
-		return halConverter;
-	}
-
-	private ObjectMapper getObjectMapperWithHalModule() {
-		ObjectMapper objectMapper = new ObjectMapper();
-		objectMapper.registerModule(new Jackson2HalModule());
-		return objectMapper;
-	}
-
 
 }
